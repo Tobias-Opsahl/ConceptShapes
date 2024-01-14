@@ -3,6 +3,7 @@ import shutil
 import random
 import pickle
 import logging
+from pathlib import Path
 
 from constants import CLASS_NAMES_10, CLASS_NAMES_15, CLASS_NAMES_21
 
@@ -72,12 +73,12 @@ def split_dataset(data_list, tables_dir, include_test=True, seed=57):
     if os.path.exists(tables_dir):
         shutil.rmtree(tables_dir)  # Delete previous folder and re-create
     os.makedirs(tables_dir)
-    with open(tables_dir + "train_data.pkl", "wb") as outfile:
+    with open(Path(tables_dir) / "train_data.pkl", "wb") as outfile:
         pickle.dump(train_data, outfile)
-    with open(tables_dir + "val_data.pkl", "wb") as outfile:
+    with open(Path(tables_dir) / "val_data.pkl", "wb") as outfile:
         pickle.dump(val_data, outfile)
     if include_test:
-        with open(tables_dir + "test_data.pkl", "wb") as outfile:
+        with open(Path(tables_dir) / "test_data.pkl", "wb") as outfile:
             pickle.dump(test_data, outfile)
 
 

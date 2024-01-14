@@ -30,9 +30,10 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from pathlib import Path
 
 from utils import split_dataset, get_logger, get_class_names_and_combinations
-from constants import DATA_ROOT_DIR, CONCEPTSHAPES_DIR
+from constants import DATA_ROOT_DIR, CONCEPTSHAPES_DIR, TABLES_DIR, DATA_LIST_NAME
 
 
 logger = get_logger(__name__)
@@ -269,7 +270,7 @@ def draw_concept_labels(probability_dict=None, use_position_concepts=False, use_
     return concept_labels
 
 
-def draw_attributes(concept_labels, x_lim=10, y_lim=10, edge_diff=1, use_position_concepts=True):
+def draw_attributes(concept_labels, x_lim=10, y_lim=10, edge_diff=1, use_position_concepts=False):
     """
     Draws the attributes of a shape, given the concepts determined by `concept_labels`, which is
     a dict with concepts as keys and booleans as values. The concepts determines things like `big_figure`
@@ -443,7 +444,7 @@ def make_ellipse(attributes):
     return patch
 
 
-def make_single_shape(shape, concept_labels, use_position_concepts=True):
+def make_single_shape(shape, concept_labels, use_position_concepts=False):
     """
     Makes a single shape (matplotlib.patches.Path).
     This funnction first finds the shapes attributes given `concept_labels`, and then calls the
@@ -528,9 +529,9 @@ def add_background_concepts(ax, concept_labels):
     return ax
 
 
-def create_and_save_image(shapes, concept_labels=None, height=64, width=64, dpi=100, base_dir="data/shapes/",
-                          class_subdir="", fig_name="fig.png",
-                          use_position_concepts=True, use_background_concepts=False):
+def create_and_save_image(shapes, concept_labels=None, height=64, width=64, dpi=100, base_dir=None,
+                          class_subdir="", fig_name="fig.png", use_position_concepts=False,
+                          use_background_concepts=False):
     """
     Makes a single images and saves it in a respective folder. A single image may contain many shapes.
     This is called from `create_and_save_images()`, which will systematically call this function many times to make
@@ -558,7 +559,7 @@ def create_and_save_image(shapes, concept_labels=None, height=64, width=64, dpi=
             the concept_labels determines the quadrant the shape is made in. If False, the shape
             will be drawn randomly in the whole grid. It is recommended to set `True` when there
             is just one shape in an image (since then there are two more concepts to use), but
-            `False` when there are two or more shapes (since they will heavily overlap otherwise.
+            `False` when there are two or more shapes (since they will heavily overlap otherwise).
         use_background_concepts (bool, optional): If True, will use four background concepts. These are dark-color
             upper half, dark color lower half, stripes upper half and striped lower half. If not, background will
             be completely black.
@@ -566,6 +567,9 @@ def create_and_save_image(shapes, concept_labels=None, height=64, width=64, dpi=
     Returns:
         concept_labels: The concept labels drawn for the image.
     """
+    if base_dir is None:
+        base_dir = Path(DATA_ROOT_DIR) / CONCEPTSHAPES_DIR
+
     fig, ax = plt.subplots(figsize=(height / dpi, width / dpi))
     ax = fig.add_axes([0, 0, 1, 1], aspect="auto")  # Make plot cover the whole image
     ax.set_xlim(0, 10)  # Virtual coords in image are from 0 to 10.
@@ -581,14 +585,15 @@ def create_and_save_image(shapes, concept_labels=None, height=64, width=64, dpi=
 
     ax.add_patch(patch)
 
-    plt.savefig(base_dir + class_subdir + fig_name, dpi=dpi, pad_inches=0)  # TODO: DIR
+    save_path = Path(base_dir) / class_subdir / fig_name
+    plt.savefig(save_path, dpi=dpi, pad_inches=0)
     plt.close()
     return concept_labels
 
 
 def generate_shapes_dataset(class_names, shape_combinations, n_images_class=10, equal_probabilities=False,
-                            use_position_concepts=True, use_background_concepts=False, signal_strength=0.98,
-                            split_data=True, base_dir="data/shapes/shapes_testing/", seed=57, verbose=True):
+                            use_position_concepts=False, use_background_concepts=False, signal_strength=0.98,
+                            split_data=True, base_dir=None, seed=57, verbose=True):
     """
     Makes a shapes-dataset. This function makes a directory of a dataset, and calls `create_and_save_image()` many times
     to create each image.
@@ -616,11 +621,14 @@ def generate_shapes_dataset(class_names, shape_combinations, n_images_class=10, 
         split_data (bool, optional): If True, will split the data-table in "train", "validation" and
             "test". Defaults to True.
         base_dir (str, optional): The directory of the dataset. Contains both the path and the name of the
-            folder for the dataset. Defaults to "data/shapes/shapes_testing/".
+            folder for the dataset.
         seed (int, optional): A seed for the rng.. Defaults to 57.
         verbose (bool, optional): If True, will print the progress. Defaults to True.
     """
     np.random.seed(seed)
+
+    if base_dir is None:
+        base_dir = Path(DATA_ROOT_DIR) / CONCEPTSHAPES_DIR
 
     if os.path.exists(base_dir):  # Delete folder and make new if it already exists
         shutil.rmtree(base_dir)
@@ -632,40 +640,41 @@ def generate_shapes_dataset(class_names, shape_combinations, n_images_class=10, 
         shape_combination = shape_combinations[i]
         if verbose:
             logger.info(f"Beginning shape combination {shape_name}:")
-        class_subdir = str(i) + "_" + shape_name + "/"  # TODO: DIR
-        full_dir_path = base_dir + class_subdir  # TODO: DIR
+        class_subdir = f"{str(i)} {shape_name}"
+        full_dir_path = Path(base_dir) / class_subdir
 
         os.makedirs(full_dir_path)
 
         for j in range(n_images_class):
             if verbose and ((j + 1) % 100 == 0):
                 logger.info(f"Image number [{j + 1} / {n_images_class}].")
-            fig_name = shape_name + "_" + str(j) + ".png"  # TODO: DIR
+            fig_name = f"{shape_name}_{str(j)}.png"
             # Draw concept-probabilites to use for single image
-            concept_probabilities = draw_concept_probabilities(n_classes=len(class_names), class_number=i,
-                                                               signal_strength=signal_strength,
-                                                               equal_probabilities=equal_probabilities,
-                                                               use_position_concepts=use_position_concepts,
-                                                               use_background_concepts=use_background_concepts)
+            concept_probabilities = draw_concept_probabilities(
+                n_classes=len(class_names), class_number=i, signal_strength=signal_strength,
+                equal_probabilities=equal_probabilities, use_position_concepts=use_position_concepts,
+                use_background_concepts=use_background_concepts)
             # Draw the actual probabilites for the image
-            concept_labels = draw_concept_labels(probability_dict=concept_probabilities,
-                                                 use_position_concepts=use_position_concepts,
-                                                 use_background_concepts=use_background_concepts)
+            concept_labels = draw_concept_labels(
+                probability_dict=concept_probabilities, use_position_concepts=use_position_concepts,
+                use_background_concepts=use_background_concepts)
             # Create and save the image.
-            create_and_save_image(shapes=shape_combination, concept_labels=concept_labels, base_dir=base_dir,
-                                  class_subdir=class_subdir, fig_name=fig_name,
-                                  use_position_concepts=use_position_concepts,
-                                  use_background_concepts=use_background_concepts)
-            data_list.append({"img_path": base_dir + class_subdir + fig_name, "class_label": i,  # TODO: DIR
+            create_and_save_image(
+                shapes=shape_combination, concept_labels=concept_labels, base_dir=base_dir, class_subdir=class_subdir,
+                fig_name=fig_name, use_position_concepts=use_position_concepts,
+                use_background_concepts=use_background_concepts)
+            img_path = Path(base_dir) / class_subdir / fig_name
+            data_list.append({"img_path": img_path, "class_label": i,
                               "attribute_label": concept_labels, "class_name": shape_name})
 
     if verbose:
         logger.info("Begin writing tables:")
-    tables_dir = base_dir + "tables/"  # Folder where data with labels and paths should be saved  # TODO: DIR
+    tables_dir = Path(base_dir) / TABLES_DIR
     if os.path.exists(tables_dir):
         shutil.rmtree(tables_dir)
     os.makedirs(tables_dir)
-    with open(tables_dir + "data_list.pkl", "wb") as outfile:  # TODO: DIR
+    data_list_path = tables_dir / DATA_LIST_NAME
+    with open(data_list_path, "wb") as outfile:
         pickle.dump(data_list, outfile)
 
     if split_data:  # Split data in train, validation and test-set.
@@ -702,7 +711,7 @@ def make_specific_shapes_dataset(n_classes, n_attr, signal_strength, n_images_cl
     class_names, shape_combinations = get_class_names_and_combinations(n_classes=n_classes)
     if dataset_name is None:
         dataset_name = f"shapes_{int(n_images_class / 1000)}k_c{n_classes}_a{n_attr}"
-    base_dir = DATA_ROOT_DIR + CONCEPTSHAPES_DIR + dataset_name  # TODO: DIR
+    base_dir = Path(DATA_ROOT_DIR) / CONCEPTSHAPES_DIR / dataset_name
     generate_shapes_dataset(
         class_names=class_names, shape_combinations=shape_combinations, n_images_class=n_images_class, split_data=True,
         base_dir=base_dir, use_position_concepts=False, use_background_concepts=use_background_concepts,
