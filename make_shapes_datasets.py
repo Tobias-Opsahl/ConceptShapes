@@ -27,12 +27,13 @@ found in `datasets_shapes.py`.
 import os
 import shutil
 import pickle
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from pathlib import Path
 
-from utils import split_dataset, get_logger, get_class_names_and_combinations
+from utils import split_dataset, get_logger, get_class_names_and_combinations, load_data_list, write_data_list
 from constants import DATA_ROOT_DIR, CONCEPTSHAPES_DIR, TABLES_DIR, DATA_LIST_NAME
 
 
@@ -501,6 +502,17 @@ def make_single_shape(shape, concept_labels, use_position_concepts=False):
 
 
 def add_background_concepts(ax, concept_labels):
+    """
+    Add the four background concepts, the color of the upper and lower parts of the background, and wether or
+    not they have stripes
+
+    Args:
+        ax (axis): Matplotlib axis.
+        concept_labels (dict): Dict mapping background concept strings to booleans.
+
+    Returns:
+        axis: The matploblib with added pathces for the backgrounds
+    """
     if concept_labels["dark_upper_background"]:
         upper_background_color = "magenta"
     else:
@@ -640,7 +652,7 @@ def generate_shapes_dataset(class_names, shape_combinations, n_images_class=10, 
         shape_combination = shape_combinations[i]
         if verbose:
             logger.info(f"Beginning shape combination {shape_name}:")
-        class_subdir = f"{str(i)} {shape_name}"
+        class_subdir = f"{str(i)}_{shape_name}"
         full_dir_path = Path(base_dir) / class_subdir
 
         os.makedirs(full_dir_path)
@@ -687,7 +699,7 @@ def make_specific_shapes_dataset(n_classes, n_attr, signal_strength, n_images_cl
     """
     Makes a specific ConceptShapes dataset, given the amount of classes, attributes, signal strengths and images per
     class.
-    The dataset is saved in ROOT_DATA_DIR / CONCEPTSHAPES_DIR / dataset_name.
+    The dataset is saved in DATA_ROOT_DIR / CONCEPTSHAPES_DIR / dataset_name.
     Change the dictionary names in `constants.py` to change the base directories.
 
     Args:
@@ -710,9 +722,96 @@ def make_specific_shapes_dataset(n_classes, n_attr, signal_strength, n_images_cl
         raise ValueError(f"Only 5 or 9 concepts are available for current ConceptShapes datasets. Got {n_attr=}.")
     class_names, shape_combinations = get_class_names_and_combinations(n_classes=n_classes)
     if dataset_name is None:
-        dataset_name = f"shapes_{int(n_images_class / 1000)}k_c{n_classes}_a{n_attr}"
+        dataset_name = f"shapes_{round(n_images_class / 1000)}k_c{n_classes}_a{n_attr}_s{round(signal_strength * 100)}"
     base_dir = Path(DATA_ROOT_DIR) / CONCEPTSHAPES_DIR / dataset_name
     generate_shapes_dataset(
         class_names=class_names, shape_combinations=shape_combinations, n_images_class=n_images_class, split_data=True,
         base_dir=base_dir, use_position_concepts=False, use_background_concepts=use_background_concepts,
         signal_strength=signal_strength)
+
+
+def make_subset_shapes(n_classes, n_attr, signal_strength, n_subset, n_images_class=None, seed=57):
+    """
+    Makes a subset of train-data and validation-data, and puts it in a sub-folder.
+    This is used for all the subset-runs and tests. This assumes a dataset with train_data.pkl and val_data.pkl
+    is already created. Will use those sets to make subsets. This is done in a way that makes sub50 a true subset of
+    sub100, which is a true subset of sub150, etc.
+    Uses `n_subset` images of each class, where 60% will be used for train data, and 40% validation data.
+
+    Finds correct path based on `n_classes`, `n_attr`, `signal_strength` and `n_subset`.
+
+    Args:
+        n_classes (int): The amount of classes in the dataset.
+        n_attr (int): The amonut of attributes (concepts) in the dataset.
+        signal_strength (int, optional): Signal-strength used to make dataset.
+        n_subset (int): The amount of images to include for each class. Must be less than the total number
+            of images in each class.
+        n_classes (int): The total amount of classes in the dataset.
+        n_images_class (int): Amount of images per class. Do not need to be provided if one uses the most
+            common variants of datasets, which is 1k for all datasets exepct c10, a9 and s98, which is 2k.
+        seed (int, optional): The seed for the rng. Defaults to 57.
+    """
+    random.seed(seed)
+    full_train_data = load_data_list(
+        n_classes, n_attr, signal_strength, n_subset=None, n_images_class=n_images_class, mode="train")
+    full_val_data = load_data_list(
+        n_classes, n_attr, signal_strength, n_subset=None, n_images_class=n_images_class, mode="val")
+    random.shuffle(full_train_data)  # Do all the randomness in these shuffles
+    random.shuffle(full_val_data)
+
+    train_class_dict = {}  # Make dicts with class-numbers at keys, pointing to the instances of that class
+    val_class_dict = {}
+    for i in range(n_classes):
+        train_class_dict[i] = []
+        val_class_dict[i] = []
+    for i in range(len(full_train_data)):
+        train_class_dict[full_train_data[i]["class_label"]].append(full_train_data[i])
+    for i in range(len(full_val_data)):
+        val_class_dict[full_val_data[i]["class_label"]].append(full_val_data[i])
+
+    new_train_list = []  # The sub-list of datapoints we want to create
+    new_val_list = []
+
+    for i in range(n_classes):
+        sub_list_train = train_class_dict[i][:int(n_subset * 0.6)]
+        sub_list_val = val_class_dict[i][:int(n_subset * 0.4)]
+        new_train_list.extend(sub_list_train)
+        new_val_list.extend(sub_list_val)
+
+    from IPython import embed
+    embed()
+    write_data_list(n_classes, n_attr, signal_strength, n_subset=n_subset,
+                    n_images_class=n_images_class, train_data=new_train_list, val_data=new_val_list)
+
+
+def change_dataset_name(old_path, new_path):
+    """
+    Changes a name of a dataset folder, and correspondingly changes all of the image-paths in the
+    data-lists and splits corresponding to it.
+
+    The data-lists and splits are stored in the folder `dataset_path/tables/`, and if there are subset of them,
+    created with `make_subset_shapes()`.
+    Replaces all of the data-lists files img_paths.
+
+    Args:
+        old_path (str): The path to the dataset to be renamed. Must contain both the path and the folder name.
+        new_path (str): The name of the new path and folder. Must contain both the path and the folder name.
+    """
+    os.rename(old_path, new_path)  # Rename the actual folder
+
+    tables_paths = [Path(new_path) / TABLES_DIR]  # Find all the directories containing data-lists and splits
+    for name in os.listdir(Path(new_path) / TABLES_DIR):  # Check for folders inside `tables/`
+        new_full_path = Path(new_path) / TABLES_DIR / name
+        if os.path.isdir(new_full_path):
+            tables_paths.append(new_full_path)
+
+    for table_path in tables_paths:  # Loop over the possible table-folders
+        for filename in os.listdir(table_path):  # Loop over the files inside the folder
+            if not filename.endswith(".pkl"):
+                continue
+            file_path = Path(table_path) / filename
+            data_list = pickle.load(open(file_path, "rb"))
+            for i in range(len(data_list)):  # Loop over the instances in the data-list.
+                data_list[i]["img_path"] = Path(str(data_list[i]["img_path"]).replace(old_path, new_path))
+            with open(file_path, "wb") as outfile:  # Overwrite
+                pickle.dump(data_list, outfile)
