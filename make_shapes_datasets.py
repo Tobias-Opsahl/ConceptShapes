@@ -34,7 +34,7 @@ import matplotlib.patches as patches
 from pathlib import Path
 
 from utils import split_dataset, get_logger, get_class_names_and_combinations, load_data_list, write_data_list
-from constants import DATA_ROOT_DIR, CONCEPTSHAPES_DIR, TABLES_DIR, DATA_LIST_NAME
+from constants import DATA_ROOT_DIR, CONCEPTSHAPES_DIR, TABLES_DIR, DATA_LIST_NAME, DESCRIPTIONS_DIR
 
 
 logger = get_logger(__name__)
@@ -695,7 +695,8 @@ def generate_shapes_dataset(class_names, shape_combinations, n_images_class=10, 
         logger.info("Finished writing tables.")
 
 
-def make_specific_shapes_dataset(n_classes, n_attr, signal_strength, n_images_class=1000, dataset_name=None):
+def make_specific_shapes_dataset(n_classes, n_attr, signal_strength, n_images_class=1000, dataset_name=None,
+                                 add_descriptions=True, subsets_to_add=None):
     """
     Makes a specific ConceptShapes dataset, given the amount of classes, attributes, signal strengths and images per
     class.
@@ -710,6 +711,9 @@ def make_specific_shapes_dataset(n_classes, n_attr, signal_strength, n_images_cl
         n_images_class (int, optional): Amount of images generated per class. Defaults to 1000.
         dataset_name (str, optional): Name of the dataset. If not provided, will be created with the hyperparameters
             for the dataset.. Defaults to None.
+        add_descriptions (bool): If True, will add the descriptions of classes and attributes to the folder.
+        subsets_to_add (list of int): List of subsets to create, `None` means not creating any subsets.
+            The ints represents amount of images for each class in the subset.
 
     Raises:
         ValueError: If `n_classes` or `n_attr` is not in a suitable interval.
@@ -728,6 +732,18 @@ def make_specific_shapes_dataset(n_classes, n_attr, signal_strength, n_images_cl
         class_names=class_names, shape_combinations=shape_combinations, n_images_class=n_images_class, split_data=True,
         base_dir=base_dir, use_position_concepts=False, use_background_concepts=use_background_concepts,
         signal_strength=signal_strength)
+
+    if add_descriptions:
+        class_filename = f"class_descriptions_c{n_classes}.txt"
+        concept_filename = f"concept_descriptions_a{n_attr}.txt"
+        shutil.copyfile(Path(DESCRIPTIONS_DIR) / class_filename, base_dir / class_filename)
+        shutil.copyfile(Path(DESCRIPTIONS_DIR) / concept_filename, base_dir / concept_filename)
+
+    if subsets_to_add is None:
+        return
+
+    for n_subset in subsets_to_add:  # Create all the desired subsets
+        make_subset_shapes(n_classes, n_attr, signal_strength, n_subset=n_subset, n_images_class=n_images_class)
 
 
 def make_subset_shapes(n_classes, n_attr, signal_strength, n_subset, n_images_class=None, seed=57):
@@ -778,8 +794,6 @@ def make_subset_shapes(n_classes, n_attr, signal_strength, n_subset, n_images_cl
         new_train_list.extend(sub_list_train)
         new_val_list.extend(sub_list_val)
 
-    from IPython import embed
-    embed()
     write_data_list(n_classes, n_attr, signal_strength, n_subset=n_subset,
                     n_images_class=n_images_class, train_data=new_train_list, val_data=new_val_list)
 

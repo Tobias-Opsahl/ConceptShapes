@@ -235,13 +235,13 @@ def get_shapes_dataset_path(n_classes, n_attr, signal_strength, n_images_class=N
     else:  # Assume 1k if it is not specified
         base_folder_name = Path("shapes_1k_")
 
-    signal_string = "" if signal_strength == 98 else f"_s{signal_strength}"
+    signal_string = f"_s{int(round(signal_strength * 100))}"
     folder_name = Path(f"{base_folder_name}c{n_classes}_a{n_attr}{signal_string}/")
     dataset_path = base_path / folder_name
     if check_already_exists:
         if not dataset_path.exists():
-            message = f"Shapes dataset for {n_classes=}, {n_attr=}, {signal_strength=} does not exist. "
-            message += "Check if there were a typo, or create the dataset with `make_shapes_datasets.py. "
+            message = f"Path {dataset_path} for ConceptShapes dataset for {n_classes=}, {n_attr=}, {signal_strength=} "
+            message += " does not exist. Check for typo or create the dataset with `make_shapes_datasets.py.` "
             raise ValueError(message)
     return dataset_path
 
