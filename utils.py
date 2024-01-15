@@ -44,6 +44,22 @@ def get_logger(name):
     return logger
 
 
+def parse_int_list(values):
+    """
+    Tries to parse from string with ints to list of ints. If it does not work, parses list of single int.
+
+    Args:
+        values (str): The string to pars
+
+    Returns:
+        ist of int: The list of ints
+    """
+    try:
+        return [int(val) for val in values.split(",")]
+    except ValueError:
+        return [int(values)]
+
+
 def split_dataset(data_list, tables_dir, include_test=True, seed=57):
     """
     Splits a dataset into "train", "validation" and "test".

@@ -4,6 +4,7 @@ Here is the structure of the functions:
     `generate_shapes_dataset()`, and the functions that calls it, makes a full dataset.
     `create_and_save_image()` makes a single images, sometimes with many shapes in it.
     `make_single_shape()` makes a single shape, to be put into an image.
+    `make_specific_shapes_dataset()` makes a specific dataset, with different possible keyword arguments.
 
 The specifications of the contents are determined by the image `attributes`, which contain information
 on position, rotation, color, thickness and more. This is drawn by `draw_attributes()`.
