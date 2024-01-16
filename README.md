@@ -24,6 +24,12 @@ In order to make lists with subsets of the data, one can use `--subsets_to_add <
 
 The file `constants.py` contains variables naming the folders. If one wishes to change this, one should modify this file. All the paths are relative, so one do not have to change anything.
 
+## Dependencies
+
+Creating the datasets only requires `numpy` and `matplotlib`. The dataloaders also uses `torch` and `torchvision`.
+
+<!-- add more details of versions -->
+
 ## File Structure
 
 The datasets will be created with the following structure: All images (saved as `.png`) of each class will be saved in a folder named after the class. The datapoints, including class labels, concept labels and a path to the image, are stored as a list of dictionaries. They are stored as a pickle file in the folder `tables/`. Subset tables are stored in their own folder inside `tables/`. The dataset will also by default include a mapping from the integer class labels and concept labels to a string explaining the representation, saved in the dataset folder.
@@ -96,7 +102,30 @@ Each class has a high probability to be assigned some predefined concepts, and a
 
 ## Using the Datasets (Dataloaders and Utility Functions)
 
-<!-- dataloaders, change-name, m -->
+The file `conceptshapes_dataloaders.py` contain a class for a PyTorch dataloader and functions for using it. Simply call `load_data_conceptshapes(n_subset, n_concepts, signal_strength, n_subset)` to return pytorch dataloaders.
+
+The dataloader class iterate over `(images, class_labels, concept_labels, paths)`. The paths are included to be able to conveniently plot and visualise, but will probably not be used in a normal training loop.
+
+Here is a full example of using the dataloader:
+
+```python
+from conceptshapes_dataloaders import load_data_conceptshapes
+
+train_loader, val_loader = load_data_conceptshapes(n_classes=21, n_attr=5, signal_strength=1, n_images_class=1000, n_subset=100, mode="train-val", batch_size=16)
+
+for images, class_labels, concept_labels, paths in train_loader:
+    print(f"Image shape: {images.shape}, Class labels shape: {class_labels.shape}, Concept labels shape: {concept_labels.shape}")
+    break
+```
+
+Out:
+
+```output
+Image shape: torch.Size([16, 3, 64, 64]), Class labels shape: torch.Size([16]), Concept labels shape: torch.Size([16, 5])
+```
+
+One might want to change the transforms, which can be done by simply altering or overwriting the function `get_transforms()`.
+Please see the doc-string of `load_data_conceptshapes()` for more information about the keyword arguments.
 
 ## Dataset Details
 
