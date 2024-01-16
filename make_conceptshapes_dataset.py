@@ -19,7 +19,7 @@ def parse_my_args():
                         help="Number of concepts/attributes (must be in [5, 9]).")
     parser.add_argument("--signal_strength", type=float, required=True,
                         help="Signal strength (must be from 0.5, to 1).")
-    parser.add_argument("--n_images_class", type=int, default=1,  # TODO: Change to 1000
+    parser.add_argument("--n_images_class", type=int, default=1000,
                         help="Number of images per class (integer).")
     parser.add_argument("--do_not_add_descriptions", action="store_true",
                         help="Do not add descriptions for classes and concepts. ")

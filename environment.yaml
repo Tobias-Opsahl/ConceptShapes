@@ -1,0 +1,10 @@
+name: conceptshapes_env
+channels:
+- defaults
+dependencies:
+- python=3.10.12
+- numpy=1.25.2
+- matplotlib=3.5.3
+- pytorch=2.0.1
+- torchvision=0.15.2
+- pip

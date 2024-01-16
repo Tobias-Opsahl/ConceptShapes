@@ -2,7 +2,7 @@
 
 ConceptShapes is a class of flexible synthetic datasets. Their key feature is that they have *concept labels* in addition to class labels. This way, the datasets can work to benchmark *concept-based models* (for example [concept bottleneck models (CBM)](https://proceedings.mlr.press/v119/koh20a.html)).
 
-This repository contains all the code necessary to create the ConceptShapes datasets, but one can also download some common version here (link TBA). Creating a datasets takes about 10-20 minutes on an ordinary laptop.
+This repository contains all the code necessary to create the ConceptShapes datasets, but one can also download some common version here (link TBA). Creating a datasets takes about 5-20 minutes on an ordinary laptop, and are of sizes approximately 40MB-100MB.
 
 ![Example images](images/multiclass_a5_a9.png)
 
@@ -28,7 +28,30 @@ The file `constants.py` contains variables naming the folders. If one wishes to 
 
 Creating the datasets only requires `numpy` and `matplotlib`. The dataloaders also uses `torch` and `torchvision`.
 
-<!-- add more details of versions -->
+Here are the specific versions of the libraries used:
+
+- **Numpy:** 1.25.2
+- **Matplotlib:** 3.5.3
+- **Torch:** 2.0.1
+- **Torchvision:** 0.15.2
+
+and **Python** version 3.10.12.
+
+### Installing Dependencies with Conda
+
+- Run `conda env create -f environment.yaml` to create the conda environment.
+- Run `conda activate conceptshapes_env` to activate the environment.
+
+### Installing Dependencies with pip
+
+- (Optional, but recommended) Create a virtual environment:
+  - `python -m venv conceptshapes_venv`
+  - Activate the environment:
+    - On Windows: `conceptshapes_venv\Scripts\activate`
+    - On macOS and Linux: `source conceptshapes_venv/bin/activate`
+- Install the required packages: `pip install -r requirements.txt`
+
+Note that `torch` and `torchvision` may take some time to install. If one does not intend to use the dataloaders, `torch` and `torchvision` can be commented out in the `requriements.txt` or `environment.yaml` file.
 
 ## File Structure
 
