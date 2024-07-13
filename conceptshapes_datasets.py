@@ -1,5 +1,5 @@
 """
-Functions for making various versions of the artificial `shapes` toy-dataset.
+Functions for making various versions of the synthetic `ConceptShapes` datasets.
 Here is the structure of the functions:
     `generate_shapes_dataset()`, and the functions that calls it, makes a full dataset.
     `create_and_save_image()` makes a single images, sometimes with many shapes in it.

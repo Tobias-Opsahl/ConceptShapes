@@ -12,7 +12,7 @@ CLASS_NAMES_21 = ["triangle_triangle", "rectangle_triangle", "pentagon_triangle"
                   "hexagon_wedge", "ellipse_ellipse", "ellipse_wedge", "wedge_wedge"]
 
 DATA_ROOT_DIR = "data/"
-CONCEPTSHAPES_DIR = "shapes/"
+CONCEPTSHAPES_DIR = "conceptshapes/"
 TABLES_DIR = "tables/"
 DATA_LIST_NAME = "data_list.pkl"
 DESCRIPTIONS_DIR = "descriptions/"
