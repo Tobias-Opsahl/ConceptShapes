@@ -1,28 +1,23 @@
 # ConceptShapes Datasets
 
-ConceptShapes is a class of flexible synthetic datasets. Their key feature is that they have *concept labels* in addition to class labels. This way, the datasets can work to benchmark *concept-based models* (for example [concept bottleneck models (CBM)](https://proceedings.mlr.press/v119/koh20a.html)).
+ConceptShapes is a class of flexible synthetic concept datasets. Their key feature is that they have *concept labels* in addition to class labels. This way, the datasets can work to benchmark *concept-based models* (for instance [concept bottleneck models (CBM)](https://proceedings.mlr.press/v119/koh20a.html)).
 
-This repository contains all the code necessary to create the ConceptShapes datasets, but one can also download some common versions from the releases [(link)](https://github.com/Tobias-Opsahl/ConceptShapes/releases/tag/v0.1.0). Creating a dataset takes about 5-20 minutes on an ordinary laptop, and are of sizes approximately 15MB-40MB.
+This repository contains all the code necessary to generate ConceptShapes datasets, but one can also download some common versions from the releases (available soon). It also contains pytorch dataloaders and utility function to easily use the datasets. Creating a dataset takes about 5-20 minutes on an ordinary laptop, and are of sizes approximately 15MB-40MB.
+
+The datasets consist of multiclass classification with images as input, and binary concept labels. The datasets are *flexible*, meaning that the user can choose the amount of classes, concepts, correlation between concepts and classes, and more.
+
+Various ConceptShapes datasets were used to benchmark hybrid concept-based models.
 
 ![Example images](images/multiclass_a5_a9.png)
+*ConceptShapes example images. Left: 5-concepts, Right: 9 concepts.*
 
-The datasets consist of multiclass classification with images as input, and binary labels. The datasets are *flexible* in that the user can choose the amount of classes, concepts, correlation between concepts and classes, and more.
+Here is a quick overview of the sections in this README:
 
-Various ConceptShapes datasets were used to benchmark hybrid concept-based models (link TBA).
-
-## How to Run the Code and Create Datasets
-
-Simply run the file `make_conceptshapes_dataset.py` with command line arguments to create a ConceptShapes dataset. For example, if one wish to make a dataset with 15 classes, 9 concepts, and signal-strength (correlation between concepts and classes) 0.9, one can run:
-
-```cli
-python make_conceptshapes_dataset.py --n_classes 15 --n_concepts 9 --signal_strength 0.9
-```
-
-The default amount of images to create is 1000 per class, which is used in the paper (link TBA) (except 10-class 5-concept 98-signal-strength, which had 2000). However, this can easily be changed with `--n_images_class <number>`.
-
-In order to make lists with subsets of the data, one can use `--subsets_to_add <number1>,<number2>,...`. In the paper (link TBA), we used 50, 100, 150, 200 and 250 images from each class. This will be created by default if `n_images_class` is equal or larger than 500. If one for instance would like subsets of 100, 200 and 300 instead, include `--subsets_to_add 100,200,300`. The full dataset will be split in train, validation and test tables, while the subsets will be split in train and validation, drawn from the full train and validation tables respectively.
-
-The file `constants.py` contains variables naming the folders. If one wishes to change this, one should modify this file. All the paths are relative, so one does not have to change anything.
+- **Dependecies**: Information on how to install dependencies and create python or conda virtual environments.
+- **Running Code and Creating Dataset**: How to actually create the datasets.
+- **File and Dataset Structure**: Information about how the dataset is stored, along with how the datatables are orgianized.
+- **Using the Datasets**: Information about how to use the utility functions, with example code to use the dataloaders.
+- **ConceptShapes Overview**: Detailed information about the datasets.
 
 ## Dependencies
 
@@ -53,19 +48,27 @@ and **Python** version 3.10.12.
 
 Note that `torch` and `torchvision` may take some time to install. If one does not intend to use the dataloaders, `torch` and `torchvision` can be commented out in the `requriements.txt` or `environment.yaml` file.
 
-## File Structure
+## Running Code and Creating Datasets
 
-The datasets will be created with the following structure: All images (saved as `.png`) of each class will be saved in a folder named after the class. The datapoints, including class labels, concept labels and a path to the image, are stored as a list of dictionaries. They are stored as a pickle file in the folder `tables/`. Subset tables are stored in their own folder inside `tables/`. The dataset will also by default include a mapping from the integer class labels and concept labels to a string explaining the representation, saved in the dataset folder.
+Simply run the file `make_conceptshapes_dataset.py` with command line arguments to create a ConceptShapes dataset. For example, if one wish to make a dataset with 15 classes, 9 concepts, and signal-strength (correlation between concepts and classes) 0.9, one can run:
 
-The file `make_conceptshapes_datasets.py` is the one meant to be called (with various command line arguments) by the user to create a ConceptShapes dataset.
+```cli
+python make_conceptshapes_dataset.py --n_classes 15 --n_concepts 9 --signal_strength 0.98
+```
 
-The file `conceptshapes_dataset.py` contains most of the code for actually creating the datasets, with some utility functions in `utils.py`.
+The default amount of images to create is 1000 per class. However, this can easily be changed with `--n_images_class <number>`.
 
-Finally, `constants.py` contains some constants, particularly path names and possible figures for the images. One should use the path variables here if one wishes to change the folder names.
+The datatables can be aranged with subsets of the dataset, so one can easily assess model performance when the amount of datapoints varies. In order to make subsets of the data, one can use `--subsets_to_add <number1>,<number2>,...`. The default is subsets 50, 100, 150, 200 and 250 images from each class, when `n_images_class` is equal or larger than 500. For instance, if one would like subsets of 100, 200 and 300 instead, include `--subsets_to_add 100,200,300`. The full dataset will be split in train, validation and test tables, while the subsets will be split in train and validation, drawn from the full train and validation tables respectively. The test dataset will be the same for each subset.
+
+The file `constants.py` contains variables naming the folders. If one wishes to change this, one should modify this file. All the paths are relative, so one does not have to change anything.
+
+## File and Dataset Structure
+
+The dataset filetree will look similar to this:
 
 ```filetree
 data/
-└── shapes/
+└── conceptshapes/
    └── shapes_1k_c10_a5_s100/
        ├── 0_triangle_triangle/
        ├── 1_triangle_rectangle/
@@ -87,6 +90,86 @@ data/
            ├── train_data.pkl
            └── val_data.pkl
 ```
+
+Where:
+
+- `data/` is the root data folder (configurable from `constants.py`)
+- `shapes_1k_c10_a5_s100/` is the name of a specific dataset (with 1k images per class, 10 classes, 5 concepts and signal strength 100%)
+- The folders `0_triangle_triangle/`, ..., `9_hexagon_hexagon/` contains the images (saved as `.png`) for each respective class.
+- The folder `tables/` contains information (such as labels and paths) for the dataset.
+- The `sub50/`, `sub100/`, ... folders have tables corresponding to the subsets.
+
+The datatables are lists of dictionaries, saved as pickle files. Each datapoint is a python dictionary with the following attributes:
+
+- `img_path`: (PosixPath) Relative path to the images the datapoint is representing. For instance: `data/shapes/shapes_1k_c10_a5_s98/6_rectangle_hexagon/rectangle_hexagon_824.png`
+- `class_label`: Integer class label, from 0 to `n_classes` - 1.
+- `attribute_label`: (dict) Dictionary mapping concepts to binary concept labels. For instance, may contain the following key: value pairs:
+  - `thick_outline`: 1
+  - `big_figure`: 0
+  - `dark_facecolor`: 0
+  - `dark_outline`: 1
+  - `stripes`: 0
+- `class_name`: (str) The name of the class. For instance, a `class_label` of 0 might correspond to `class_name` of `triangle_triangle`.
+
+The file `make_conceptshapes_datasets.py` is the one meant to be called (with various command line arguments) by the user to create a ConceptShapes dataset.
+
+The file `conceptshapes_dataset.py` contains most of the code for actually creating the datasets, with some utility functions in `utils.py`.
+
+To loader pytorch dataloaders of the data, use `load_data_conceptshapes()` from `conceptshapes_dataloaders.py` (for examples, see `Using the Datasets`).
+
+Finally, `constants.py` contains some constants, particularly path names and possible figures for the images. One should use the path variables here if one wishes to change the folder names.
+
+## Using the Datasets (Dataloaders and Utility Functions)
+
+The file `conceptshapes_dataloaders.py` contains a class for a PyTorch dataloader and functions for using it. Simply call `load_data_conceptshapes(n_classes, n_concepts, signal_strength, n_subset)` to return pytorch dataloaders.
+
+The dataloader class iterates over `(images, class_labels, concept_labels, paths)`. The paths are included to be able to conveniently plot and visualise, but will probably not be used in a normal training loop.
+
+Here is a full example of using the dataloader:
+
+```python
+from conceptshapes_dataloaders import load_data_conceptshapes
+
+
+train_loader, val_loader = load_data_conceptshapes(
+    n_classes=10, n_attr=9, signal_strength=0.98, n_images_class=1000, n_subset=100, mode="train-val", batch_size=16)
+
+
+for images, class_labels, concept_labels, paths in train_loader:
+    print(f"Image shape: {images.shape}, Class labels shape: {class_labels.shape}. ")
+    print(f"Concept labels shape: {concept_labels.shape}")
+    break
+```
+
+Out:
+
+```output
+Image shape: torch.Size([16, 3, 64, 64]), Class labels shape: torch.Size([16]), Concept labels shape: torch.Size([16, 5])
+```
+
+Note that the provided dataloader iterates over four elements, instead of the fairly common two (data and labels). The training loop should therefore be altered slightly.
+
+One might want to change the transforms, which can be done by simply altering or overwriting the function `get_transforms()`.
+Please see the doc-string of `load_data_conceptshapes()` for more information about the keyword arguments.
+
+In order to only load the datatables, one can run this:
+
+```python
+from utils import load_data_list
+
+train_data_list = load_data_list(
+    n_classes=15, n_attr=9, signal_strength=0.98, n_subset=None, n_images_class=1000, mode="train")
+```
+
+Set `n_subset` to for example `100` to use the 100 images per class subset. If it is set to `None`, the full data split will be returned.
+
+### Renaming the Dataset and Paths
+
+If one wishes to rename a dataset or path, one should use `change_dataset_name()` from `conceptshapes_datasets.py`. The tables contain paths to the images which are used by the dataloader, which the function changes for you. The argument should be a relative path from this folder to the dataset, for example `change_dataset_name("data/shapes/shape_1k_c10_a5_s98, "new_path")`.
+
+### Changing Predefined Settings
+
+If one wishes to change something that is predefined, like the resolution of images, classes not in [10, 15, 21] or concepts not in [5, 9], the code is pretty generic and easily adjustable. One can use the `generate_shapes_dataset()` from `conceptshapes_datasets.py`, which is more generic than the `make_specific_shapes_dataset()`. The code is well documented and should be decent to understand.
 
 ## ConceptShapes Overview
 
@@ -123,36 +206,7 @@ A key feature of the datasets is to have concepts that are useful for predicting
 
 Each class has a high probability to be assigned some predefined concepts, and a low probability for the rest. The notion of *high probability* is defined by a hyperparameter called *signal-strength* $\in [0.5, 1]$. A signal strength of $s$ results in concepts with high probability being assigned $(s \cdot 100)\%$ percent of the time, and the concepts with low probability will be assigned $(1 - s) \cdot 100 \%$ of the time. Hence, the extreme case $s = 0.5$ would make the concepts present 50\% of the time, making the concepts and classes uncorrelated. On the other extreme, $s = 1$ would make each class have the exact same concepts. Numbers in between will make the concepts and classes correlated, but with exceptions, which will be realistic in real world datasets. Tables showing which classes have a high probability for which concepts are inputted at the end of the README.md.
 
-## Using the Datasets (Dataloaders and Utility Functions)
-
-The file `conceptshapes_dataloaders.py` contains a class for a PyTorch dataloader and functions for using it. Simply call `load_data_conceptshapes(n_subset, n_concepts, signal_strength, n_subset)` to return pytorch dataloaders.
-
-The dataloader class iterates over `(images, class_labels, concept_labels, paths)`. The paths are included to be able to conveniently plot and visualise, but will probably not be used in a normal training loop.
-
-Here is a full example of using the dataloader:
-
-```python
-from conceptshapes_dataloaders import load_data_conceptshapes
-
-
-train_loader, val_loader = load_data_conceptshapes(n_classes=21, n_attr=5, signal_strength=1, n_images_class=1000, n_subset=100, mode="train-val", batch_size=16)
-
-
-for images, class_labels, concept_labels, paths in train_loader:
-   print(f"Image shape: {images.shape}, Class labels shape: {class_labels.shape}, Concept labels shape: {concept_labels.shape}")
-   break
-```
-
-Out:
-
-```output
-Image shape: torch.Size([16, 3, 64, 64]), Class labels shape: torch.Size([16]), Concept labels shape: torch.Size([16, 5])
-```
-
-One might want to change the transforms, which can be done by simply altering or overwriting the function `get_transforms()`.
-Please see the doc-string of `load_data_conceptshapes()` for more information about the keyword arguments.
-
-## Dataset Details
+### Further Dataset Details
 
 We include some details of the datasets here.
 
@@ -168,12 +222,4 @@ Here are tables indicating which classes have a high probability of being assign
 
 ### Amount of Images
 
-The paper (link TBA) uses different subsets of data to benchmark models, with 50, 100, 150, 200 and 250 images from each class. This is to see how the models behave with different amounts of data. The creation of datasets and dataloaders are made to easily support this. It is encouraged to try different sizes of the dataset, but one can also use the full dataset. We use more images in each class (1000) than the biggest subset (250), in order to bootstrap the subsets over multiple runs and lower the variance.
-
-### Renaming the Dataset and Paths
-
-If one wishes to rename a dataset or path, one should use `change_dataset_name()` from `conceptshapes_datasets.py`. The tables contain paths to the images which are used by the dataloader, which the function changes for you. The argument should be a relative path from this folder to the dataset, for example `change_dataset_name("data/shapes/shape_1k_c10_a5_s98, "new_path")`.
-
-### Changing Predefined Settings
-
-If one wishes to change something that is predefined, like the resolution of images, classes not in [10, 15, 21] or concepts not in [5, 9], the code is pretty generic and easily adjustable. One can use the `generate_shapes_dataset()` from `conceptshapes_datasets.py`, which is more generic than the `make_specific_shapes_dataset()`. The code is well documented and should be decent to understand.
+We originally used different subsets of data to benchmark models, with 50, 100, 150, 200 and 250 images from each class. This is to see how the models behave with different amounts of data. The creation of datasets and dataloaders are made to easily support this. It is encouraged to try different sizes of the dataset, but one can also use the full dataset. We use more images in each class (1000) than the biggest subset (250), in order to bootstrap the subsets over multiple runs and lower the variance.
