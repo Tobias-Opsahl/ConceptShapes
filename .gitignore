@@ -1,5 +1,5 @@
-images/
 .vscode/
 .DS_Store
 **/__pycache__/
-todo.txt
+data/
+conceptshapes_venv/
